@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天室</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/normalize/8.0.1/normalize.min.css" rel="stylesheet">
+    <style>
+        * {
+            position: relative;
+        }
+
+        body {
+            background: rgb(233 236 239);
+        }
+
+        input,
+        input:focus {
+            border: none;
+            outline: none;
+
+        }
+
+        input {
+            margin-right: 30px;
+            border-bottom: 1px solid #8989ba;
+            background: rgb(233 236 239);
+            width: 200px;
+        }
+
+        input:focus {
+            border-bottom: 1px solid #e28419;
+        }
+
+        button,
+        button:focus {
+            border: none;
+            outline: none;
+        }
+
+        button:hover{
+            background-color: #00633e;
+        }
+
+        button {
+            cursor: pointer;
+            color: #fff;
+            background-color: #00965e;
+            border-color: #00965e;
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            vertical-align: middle;
+            user-select: none;
+            padding: .375rem .75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: .25rem;
+            transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+        }
+
+        .wrap {
+            width: 100%;
+            min-height: 800px;
+        }
+
+        .main {
+            width: 400px;
+            margin: 0 auto;
+        }
+
+        #content {
+            width: 100%;
+            margin: 0 0 20px;
+            border-radius: 4px;
+            min-height: 300px;
+            background: #1d1f21;
+        }
+
+        .input-group {
+            margin: 20px 20px;
+        }
+
+        #content{
+            padding: 10px;
+            color: #2bbc8a;
+            font-size: .8em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="main">
+            <h1>MY.聊天室</h1>
+            <b style="display: inline-block;color: #7c818a;font-size: 14px;">当前在线人数：<p id="num" style="display: inline-block;">0</p></b>
+            <div id="content"></div>
+            <div class="input-group">
+                <input type="text" id="name" placeholder="输入你的昵称">
+                <button class="btn" onclick="EnterChatroom()">加入聊天室</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="text" disabled placeholder="一起来聊天吧">
+                <button class="btn" onclick="Submit()">发送</button>
+            </div>
+            <button class="btn" onclick="ExitChatroom()">退出聊天室</button>
+        </div>
+    </div>
+</body>
+<script>
+    socket=undefined
+    /**
+     * 往屏幕里输出信息
+     */
+    function addMsg(msg) {
+        let content = document.getElementById('content')
+        let msgs = msg.split('#')
+        console.log(msg)
+        if(msg.charAt(0)==='我')
+            content.innerHTML=content.innerHTML+"<p align='right'>"+msgs[0]+"</p>"            
+        else
+            content.innerHTML=content.innerHTML+"<p>"+msgs[0]+"</p>"
+        document.getElementById("num").innerHTML = msgs[1]
+    }
+    function Submit() {
+        let msg=document.getElementById('text').value
+        if(msg){
+            if (!window.WebSocket) {
+                return
+            }
+            if (socket.readyState == WebSocket.OPEN) {
+                socket.send(msg)
+                document.getElementById('text').value=''
+            } else {
+                alert('连接没有开启.')
+            }
+        }else{
+            alert('不允许空消息')
+        }
+    }
+    /**
+     * 加入聊天室
+     */
+    function EnterChatroom() {
+        nickname=document.getElementById('name').value
+        url='ws://localhost:8081/ws?nickname='+nickname
+        if (!window.WebSocket) {
+            window.WebSocket = window.MozWebSocket
+        }
+        if (window.WebSocket) {
+            socket = new WebSocket(url)
+            document.getElementById('name').setAttribute('disabled', true)
+            document.getElementById('text').removeAttribute('disabled')
+            document.getElementById('content').innerHTML=''
+            socket.onopen = function(event) {
+                // addMsg(' 连接成功')
+                socket.send("连接成功")
+                console.log(event)
+            }
+            socket.onclose = function(event) {
+                addMsg('连接被关闭')
+            }
+            socket.onmessage = function(event) {
+                addMsg(event.data)
+            }
+        } else {
+            alert('你的浏览器不支持 WebSocket！')
+        }
+    }
+    /**
+     * 退出聊天室
+     */
+    async function ExitChatroom() {
+        socket.send("退出聊天室")
+        addMsg("退出聊天室")
+        socket.close()
+        document.getElementById('text').setAttribute('disabled', true)
+        document.getElementById('name').removeAttribute('disabled')
+        
+    }
+</script>
+
+</html>
